@@ -1,0 +1,44 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+actor "User" as U
+participant "bank client" as C
+participant "server parent" as P
+participant "handler child" as H
+participant "session table\n(shm + sem)" as S
+database "data/bank" as DB
+
+U -> C : choose role, enter username and password
+C -> P : TCP connect to localhost
+P -> H : fork one handler
+C -> H : LOGIN request
+H -> DB : read user record
+DB --> H : user
+H -> H : verify active status and password hash
+H -> S : semaphore lock, scan active user id
+alt user already has a session
+  H --> C : error: already logged in
+else no active session
+  H -> S : add session (user id, pid)
+  H --> C : success and role
+end
+U -> C : choose an operation
+C -> H : authenticated request
+H -> S : session belongs to this user and pid?
+alt session missing
+  H --> C : session ended
+else session valid
+  H -> DB : process operation
+  DB --> H : result
+  H --> C : response
+end
+U -> C : logout
+C -> H : LOGOUT request
+H -> S : remove session for user
+H --> C : logged out
+
+@enduml

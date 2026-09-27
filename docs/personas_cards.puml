@@ -1,0 +1,28 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 16
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  RoundCorner 15
+}
+
+rectangle "<b>Customer</b>\n<i>Goal: manage own money</i>\n\n• Login, one session\n• View balance\n• Deposit / withdraw\n• Transfer funds\n• History and mini statement\n• Apply for loan\n• Feedback and replies" as C
+
+rectangle "<b>Bank Employee</b>\n<i>Goal: customer service and loans</i>\n\n• Login, one session\n• Add / modify customer\n• View customer passbook\n• View assigned loans\n• Approve / reject loan\n• Close account" as E
+
+rectangle "<b>Manager</b>\n<i>Goal: account control and allocation</i>\n\n• Login, one session\n• Activate / deactivate account\n• View pending loans\n• Assign loan to employee\n• Review feedback and reply" as M
+
+rectangle "<b>Administrator</b>\n<i>Goal: staff, roles, and audit</i>\n\n• Login, one session\n• Add employee or manager\n• Modify user details\n• Manage user roles\n• Set loan interest policy\n• List users\n• View activity log" as A
+
+C -right-> M : loan request / feedback
+M --> E : assign loan
+E -left-> C : account service / passbook
+M -left-> C : activate, deactivate / reply
+A -up-> C : user details / roles
+A -up-> E : add staff / roles
+A -up-> M : add staff / roles
+
+@enduml

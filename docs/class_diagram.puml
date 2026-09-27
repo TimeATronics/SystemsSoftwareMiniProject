@@ -1,0 +1,156 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam classFontName "DejaVu Sans"
+skinparam classFontSize 14
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultTextAlignment left
+skinparam nodesep 35
+skinparam ranksep 45
+hide circle
+left to right direction
+
+class BankClient {
+  - sock : int
+  - uid : int
+  - role : int
+  + connect(host, port)
+  + login()
+  + customer_menu()
+  + employee_menu()
+  + manager_menu()
+  + admin_menu()
+}
+
+class BankServer {
+  - listen_fd : int
+  - shmid : int
+  - semid : int
+  - msqid : int
+  + main()
+  - accept_loop()
+  - reap_children()
+  - shutdown()
+}
+
+class ClientHandler {
+  - fd : int
+  - uid : int
+  + serve()
+  - dispatch(request)
+  - send_response()
+}
+
+class Database {
+  - lock_fd : int
+  + load(bank)
+  + save(bank)
+  + lock_all(write)
+  + read_record(table, index)
+}
+
+class SessionTable {
+  - shm : shared *
+  - semid : int
+  + add(user, pid)
+  + remove_user(user)
+  + has(user, pid)
+}
+
+class AuditLogger {
+  - msqid : int
+  - thread : pthread_t
+  + start()
+  + stop()
+  - run()
+}
+
+class BankFile {
+  - header : struct header
+  - users[MAX_USERS]
+  - loans[MAX_LOANS]
+  - txns[MAX_TXNS]
+  - feedback[MAX_FEEDBACK]
+}
+
+class User {
+  - id : int
+  - username[32]
+  - name[64]
+  - pass_hash : unsigned long long
+  - salt : unsigned
+  - role : int
+  - active : int
+  - balance : long long
+  - created_at : time_t
+}
+
+class Loan {
+  - id : int
+  - customer_id : int
+  - employee_id : int
+  - amount : long long
+  - months : int
+  - interest_type : int
+  - rate_bps : int
+  - interest_amount : long long
+  - total_payable : long long
+  - status : int
+  - purpose[96]
+}
+
+class Transaction {
+  - id : int
+  - user_id : int
+  - type : int
+  - amount : long long
+  - balance_after : long long
+  - ts : time_t
+  - note[96]
+}
+
+class Feedback {
+  - id : int
+  - user_id : int
+  - status : int
+  - message[128]
+  - reply[128]
+  - ts : time_t
+}
+
+class Session {
+  - user_id : int
+  - pid : pid_t
+  - active : int
+}
+
+class AuditEntry {
+  - timestamp : char[32]
+  - user_id : int
+  - action[256]
+}
+
+BankClient --> BankServer
+BankServer "1" *-- "0..*" ClientHandler
+ClientHandler --> Database
+ClientHandler --> SessionTable
+ClientHandler --> AuditLogger
+Database *-- BankFile
+BankFile *-- "1" User
+BankFile *-- "0..*" Loan
+BankFile *-- "0..*" Transaction
+BankFile *-- "0..*" Feedback
+SessionTable *-- "0..*" Session
+AuditLogger *-- "0..*" AuditEntry
+User "1" -- "0..*" Loan
+User "1" -- "0..*" Transaction
+User "1" -- "0..*" Feedback
+
+note right of Database
+  One binary file, data/bank.
+  Reads use per-record shared locks.
+  Writes use a whole-file lock,
+  fsync, and atomic rename.
+end note
+
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+actor "Customer" as U
+participant "bank client" as C
+participant "handler child" as H
+participant "data/lock" as L
+database "data/bank" as DB
+participant "data/newbank" as TMP
+queue "audit queue" as Q
+
+U -> C : recipient username and amount
+C -> H : TRANSFER request
+H -> L : fcntl(F_WRLCK, start 0, length 0)
+L --> H : whole-file lock acquired
+H -> DB : load complete bank file
+DB --> H : in-memory bank image
+H -> H : check sender active, recipient active,\nself-transfer, and sufficient balance
+H -> DB : subtract from sender, add to recipient
+H -> DB : append transfer-out and transfer-in transactions
+H -> TMP : write complete new bank file
+H -> TMP : fsync
+H -> DB : rename data/newbank over data/bank
+H -> L : unlock
+H -> Q : audit event
+H --> C : success and new balance
+C --> U : show result
+
+note over H,DB
+  Readers take shared byte-range locks on
+  individual records. The whole-file write
+  lock conflicts with every reader lock.
+end note
+
+@enduml

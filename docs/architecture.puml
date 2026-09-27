@@ -1,0 +1,65 @@
+@startuml
+skinparam componentStyle rectangle
+skinparam componentFontName "DejaVu Sans"
+skinparam componentFontSize 17
+skinparam shadowing false
+skinparam nodesep 40
+skinparam ranksep 55
+skinparam defaultTextAlignment center
+left to right direction
+
+actor "Bank user\ncustomer, employee,\nmanager, administrator" as U
+
+package "Client process" {
+  component "bank client\nmenu, socket, printf/fgets" as CL
+}
+
+node "Server parent" {
+  component "accept loop\nselect + self-pipe" as P
+  component "child registry\nSIGCHLD / waitpid" as R
+}
+
+node "Handler child\none per client session" {
+  component "session check" as SC
+  component "request dispatch\nrole checks" as D
+  component "business logic\ntransactions" as B
+}
+
+package "System V IPC" {
+  database "session table\nshared memory" as SHM
+  component "semaphore\nSEM_UNDO" as SEM
+  queue "audit queue\nmessage queue" as MQ
+}
+
+node "Logger thread" {
+  component "logger\nmsgrcv + timestamps" as L
+}
+
+folder "data directory" {
+  artifact "data/bank\nfixed records" as DB
+  artifact "data/lock\nfcntl lock file" as LOCK
+  artifact "data/audit\ntext activity log" as AUDIT
+}
+
+U --> CL
+CL --> P : TCP localhost
+P --> R
+P --> D : fork
+D --> SC
+D --> B
+SC --> SHM
+SC --> SEM
+B --> SHM
+B --> DB : load / save
+B --> LOCK : read / write locks
+B --> MQ : audit event
+L --> MQ
+L --> AUDIT
+
+note bottom of DB
+  Writes use a whole-file lock,
+  write data/newbank, fsync,
+  then rename over data/bank.
+end note
+
+@enduml

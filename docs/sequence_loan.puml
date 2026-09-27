@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "DejaVu Sans"
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+actor "Customer" as C
+actor "Manager" as M
+actor "Employee" as E
+participant "handler child" as H
+database "data/bank" as DB
+
+C -> H : APPLY_LOAN(amount, months, purpose)
+H -> DB : append loan with status PENDING
+H --> C : loan id
+M -> H : PENDING_LOANS
+H -> DB : scan pending loans
+DB --> H : pending rows
+H --> M : loan list
+M -> H : ASSIGN_LOAN(loan id, employee username)
+H -> DB : store employee id
+H --> M : assigned
+E -> H : ASSIGNED_LOANS
+H -> DB : scan loans for this employee
+DB --> H : assigned rows
+H --> E : loan list
+E -> H : PROCESS_LOAN(loan id, APPROVED)
+H -> DB : lock loan, check assignment and PENDING
+H -> DB : credit customer, add TX_LOAN, set APPROVED
+H --> E : approved and amount
+C -> H : BALANCE
+H -> DB : read customer
+DB --> H : updated balance
+H --> C : new balance
+
+alt employee rejects
+  E -> H : PROCESS_LOAN(loan id, REJECTED)
+  H -> DB : set status REJECTED, no money moves
+  H --> E : rejected
+end
+
+@enduml
