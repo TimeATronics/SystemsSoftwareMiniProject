@@ -5,6 +5,27 @@ Aradhya Chakrabarti (MT2026012)
 CS-513 System Software Mini Project  
 International Institute of Information Technology, Bangalore
 
+## Build
+
+```sh
+make clean
+make
+```
+
+## Run
+
+Start the server in one terminal:
+
+```sh
+./server
+```
+
+Start the client in another terminal:
+
+```sh
+./client
+```
+
 ![Page 1](report/pages/page-01.png)
 ![Page 2](report/pages/page-02.png)
 ![Page 3](report/pages/page-03.png)
